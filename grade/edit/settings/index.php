@@ -58,7 +58,7 @@ if ($mform->is_cancelled()) {
 
 } else if ($data = $mform->get_data()) {
     $data = (array)$data;
-    $general = array('displaytype', 'decimalpoints', 'aggregationposition', 'minmaxtouse');
+    $general = array('displaytype', 'decimalpoints', 'aggregationposition', 'minmaxtouse', 'hidegrader');
     foreach ($data as $key=>$value) {
         if (!in_array($key, $general) and strpos($key, 'report_') !== 0
                                       and strpos($key, 'import_') !== 0
