@@ -4817,7 +4817,9 @@ class assign {
                     $gradefordisplay = $this->display_grade($gradebookgrade->grade, false);
                 }
                 $gradeddate = $gradebookgrade->dategraded;
-                if (isset($grade->grader)) {
+
+                $canviewgrader = !grade_get_setting($this->get_course()->id, 'hidegrader', $CFG->grade_item_hidegrader);
+                if (isset($grade->grader) && ($canviewgrader || $cangrade)) {
                     $grader = $DB->get_record('user', array('id' => $grade->grader));
                 }
             }

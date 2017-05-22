@@ -115,6 +115,20 @@ class course_settings_form extends moodleform {
         $mform->addElement('select', 'decimalpoints', get_string('decimalpoints', 'grades'), $options);
         $mform->addHelpButton('decimalpoints', 'decimalpoints', 'grades');
 
+        $options = array(-1 => get_string('default', 'grades'),
+                         0 => get_string('no'),
+                         1 => get_string('yes'));
+
+        if (empty($CFG->grade_item_hidegrader)) {
+            $options[-1] = get_string('defaultprev', 'grades', $options[0]);
+        } else {
+            $options[-1] = get_string('defaultprev', 'grades', $options[1]);
+        }
+
+        $mform->addElement('select', 'hidegrader', get_string('gradeitemhidegrader', 'grades'), $options);
+        $mform->addHelpButton('hidegrader', 'gradeitemhidegrader', 'grades');
+        $mform->setDefault('hidegrader', -1);
+
 // add setting options for plugins
         $types = array('report', 'export', 'import');
 
