@@ -74,7 +74,7 @@ class mod_assign_grade_form extends moodleform {
      * @param array $files
      */
     public function validation($data, $files) {
-        global $DB;
+        global $CFG, $DB;
         $errors = parent::validation($data, $files);
         $instance = $this->assignment->get_instance();
 
@@ -86,7 +86,7 @@ class mod_assign_grade_form extends moodleform {
         if ($instance->grade > 0) {
             if (unformat_float($data['grade'], true) === false && (!empty($data['grade']))) {
                 $errors['grade'] = get_string('invalidfloatforgrade', 'assign', $data['grade']);
-            } else if (unformat_float($data['grade']) > $instance->grade) {
+            } else if (!$CFG->unlimitedgrades && unformat_float($data['grade']) > $instance->grade) {
                 $errors['grade'] = get_string('gradeabovemaximum', 'assign', $instance->grade);
             } else if (unformat_float($data['grade']) < 0) {
                 $errors['grade'] = get_string('gradebelowzero', 'assign');
