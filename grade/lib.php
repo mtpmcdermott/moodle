@@ -55,6 +55,16 @@ class graded_users_iterator {
     protected $users_rs;
 
     /**
+     * A recordset of cohorts
+     */
+    protected $cohorts;
+
+    /**
+     * A recordset of groups
+     */
+    protected $groups;
+
+    /**
      * A recordset of user grades (grade_grade instances)
      */
     protected $grades_rs;
@@ -101,6 +111,16 @@ class graded_users_iterator {
     protected $suspendedusers = array();
 
     /**
+     * Include cohorts in the export
+     */
+    protected $showcohorts;
+
+    /**
+     * Include groups in the export
+     */
+    protected $showgroups;
+
+    /**
      * Constructor
      *
      * @param object $course A course object
@@ -110,10 +130,13 @@ class graded_users_iterator {
      * @param string $sortorder1 The order in which the first sorting field will be sorted (ASC or DESC)
      * @param string $sortfield2 The second field of the users table by which the array of users will be sorted
      * @param string $sortorder2 The order in which the second sorting field will be sorted (ASC or DESC)
+     * @param bool   $showcohorts When true, cohorts will be included in the export
+     * @param bool   $showgroups When true, group names will be included in the exprot
      */
     public function __construct($course, $grade_items=null, $groupid=0,
                                           $sortfield1='lastname', $sortorder1='ASC',
-                                          $sortfield2='firstname', $sortorder2='ASC') {
+                                          $sortfield2='firstname', $sortorder2='ASC',
+                                          $showcohorts=false, $showgroups=false) {
         $this->course      = $course;
         $this->grade_items = $grade_items;
         $this->groupid     = $groupid;
@@ -121,6 +144,8 @@ class graded_users_iterator {
         $this->sortorder1  = $sortorder1;
         $this->sortfield2  = $sortfield2;
         $this->sortorder2  = $sortorder2;
+        $this->showcohorts = $showcohorts;
+        $this->showgroups  = $showgroups;
 
         $this->gradestack  = array();
     }
@@ -212,6 +237,39 @@ class graded_users_iterator {
                              $groupwheresql
                     ORDER BY $order";
         $this->users_rs = $DB->get_recordset_sql($users_sql, $params);
+
+        if ($this->showgroups) {
+            $groups_sql = "SELECT u.id, g.name
+                        FROM {user} u
+                        JOIN ($enrolledsql) je ON je.id = u.id
+                             $groupsql
+                        JOIN (
+                                  SELECT DISTINCT ra.userid
+                                    FROM {role_assignments} ra
+                                   WHERE ra.roleid $gradebookroles_sql
+                                     AND ra.contextid $relatedctxsql
+                             ) rainner ON rainner.userid = u.id
+                         JOIN {groups_members} gm ON gm.userid = u.id
+                         JOIN {groups} g ON g.id = gm.groupid AND g.courseid = :courseid
+                         WHERE u.deleted = 0
+                             $groupwheresql
+                    ORDER BY u.id";
+            $params['courseid'] = $this->course->id;
+            $this->groups = $DB->get_recordset_sql($groups_sql, $params);
+        }
+
+        if ($this->showcohorts) {
+            $cohorts_sql = "SELECT u.id, c.name
+                              FROM {cohort} c
+                              JOIN {cohort_members} cm ON cm.cohortid = c.id
+                              JOIN ($enrolledsql) u ON u.id = cm.userid
+                              $groupsql
+                             WHERE c.contextid $relatedctxsql
+                             $groupwheresql
+                          ORDER BY u.id";
+            $params['ctx'] = $coursecontext->id;
+            $this->cohorts = $DB->get_recordset_sql($cohorts_sql, $params);
+        }
 
         if (!$this->onlyactive) {
             $context = context_course::instance($this->course->id);
@@ -318,6 +376,22 @@ class graded_users_iterator {
         $result->user      = $user;
         $result->grades    = $grades;
         $result->feedbacks = $feedbacks;
+        
+        $groups = array();
+        if ($this->showgroups) {
+            foreach ($this->groups as $gr) {
+                $groups[] = $gr->name;
+            }
+            $result->groups = implode(", ", $groups);
+        }
+        $cohorts = array();
+        if ($this->showcohorts) {
+            foreach ($this->cohorts as $cr) {
+                $cohorts[] = $cr->name;
+            }
+            $result->cohorts = implode(", ", $cohorts);
+        }
+
         return $result;
     }
 
@@ -3297,4 +3371,3 @@ abstract class grade_helper {
         return $result;
     }
 }
-
